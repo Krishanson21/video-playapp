@@ -1,87 +1,18 @@
 <template>
   <main class="video-poc-container">
-    
     <div class="cinema-banner-fluid-strip">
+      <button class="player-nav prev" @click="previousVideo" aria-label="Previous Video">❮</button>
       
-      <video 
-        ref="mainVideoElement"
-        :src="activeVideo.videoUrl" 
-        autoplay
-        class="main-html5-player"
-        @ended="handleVideoEnded"
-        @timeupdate="updateTrackTimeline"
-        @click="togglePlaybackState"
-      ></video>
-
-      <div 
-        class="video-click-overlay" 
-        :class="{ 'is-hidden': isCurrentlyPlaying }"
-        @click="togglePlaybackState"
-      >
-        <div class="hologram-play-trigger">
-          <i class="fa-solid fa-play"></i>
-        </div>
+      <div class="video-frame-wrapper">
+        <iframe 
+          :src="`https://player.vimeo.com/video/${videoIds[currentIndex]}?autoplay=1&muted=0&api=1`"
+          allow="autoplay; fullscreen; picture-in-picture" 
+          allowfullscreen
+          class="native-vimeo-iframe-frame"
+        ></iframe>
       </div>
 
-      <div class="custom-video-control-deck">
-        <button class="deck-btn" @click="togglePlaybackState" aria-label="Play/Pause">
-          <i :class="isCurrentlyPlaying ? 'fa-solid fa-pause' : 'fa-solid fa-play'"></i>
-        </button>
-
-        <div class="timeline-scrubber-wrapper">
-          <span class="floating-timestamp-pill" :style="{ left: trackTimelinePercent + '%' }">
-            {{ formattedTimeDisplay }}
-          </span>
-          <div class="custom-progress-bar-track" @mousedown="scrubToTimelineFrame">
-            <div class="progress-active-fill" :style="{ width: trackTimelinePercent + '%' }"></div>
-          </div>
-        </div>
-
-        <div class="deck-right-actions">
-          <div class="volume-slider-box vertical-hover-container">
-            <div class="vertical-slider-popover">
-              <input 
-                type="range" 
-                min="0" max="1" step="0.1" 
-                orient="vertical"
-                :value="isMuted ? 0 : currentVolume" 
-                @input="adjustPlayerVolume"
-                class="volume-range-widget vertical-slider"
-              />
-            </div>
-            <button class="deck-btn compact-padding" @click="toggleMuteState" aria-label="Mute Control">
-              <i :class="isMuted ? 'fa-solid fa-volume-xmark' : currentVolume < 0.5 ? 'fa-solid fa-volume-low' : 'fa-solid fa-volume-high'"></i>
-            </button>
-          </div>
-
-          <button class="deck-btn compact-padding" @click="togglePopOutWindow" aria-label="Pop-out Window">
-            <i class="fa-solid fa-window-restore"></i>
-          </button>
-
-          <div class="settings-menu-container">
-              <button class="deck-btn compact-padding" @click="isSettingsMenuOpen = !isSettingsMenuOpen" aria-label="Settings">
-                <i class="fa-solid fa-gear" :class="{ 'gear-spin-active': isSettingsMenuOpen }"></i>
-              </button>
-              
-              <div v-if="isSettingsMenuOpen" class="settings-popup-card">
-                <div class="settings-popup-header">Quality Options</div>
-                <button 
-                  v-for="quality in ['1080p', '720p', '480p', 'Auto']" 
-                  :key="quality"
-                  class="quality-option-row"
-                  :class="{ 'is-active-quality': selectedQuality === quality }"
-                  @click="changeVideoQuality(quality)"
-                >
-                  <i class="fa-solid fa-check check-mark-icon"></i>
-                  <span>{{ quality }}</span>
-                </button>
-              </div>
-            </div>
-          
-          <button class="deck-btn compact-padding" @click="toggleFullscreenView" aria-label="Fullscreen Expansion"><i class="fa-solid fa-expand"></i></button>
-          <span class="vimeo-brand-tag">vimeo</span>
-        </div>
-      </div>
+      <button class="player-nav next" @click="nextVideo" aria-label="Next Video">❯</button>
     </div>
 
     <div class="player-main-center-wrapper">
@@ -89,38 +20,35 @@
         
         <section class="player-left-workspace">
           <div class="video-meta-card">
-            <h1 class="video-display-title">{{ activeVideo.title }}</h1>
+            <h1 class="video-display-title">{{ activeMetadata.title }}</h1>
             <div class="video-stats-strip">
-              <span>{{ activeVideo.views }} views</span>
-              <span class="bullet-divider">•</span>
-              <span>{{ activeVideo.uploadedAt }}</span>
+              <span id="dynamic-up-next-string"><strong>Up Next:</strong> {{ upNextTitle }}</span>
             </div>
 
             <div class="utility-actions-row">
-              <button class="action-trigger-btn" aria-label="Share"><i class="fa-regular fa-paper-plane"></i></button>
-              <button class="action-trigger-btn" aria-label="Favorite"><i class="fa-regular fa-heart"></i></button>
-              <button class="action-trigger-btn" aria-label="Flag"><i class="fa-regular fa-flag"></i></button>
+              <button class="action-trigger-btn"><i class="fa-regular fa-paper-plane"></i> Share</button>
+              <button class="action-trigger-btn"><i class="fa-regular fa-heart"></i> Like</button>
+              <button class="action-trigger-btn"><i class="fa-regular fa-flag"></i> Report</button>
             </div>
-
-            <hr class="section-divider" />
 
             <div class="channel-attribution-block">
               <div class="channel-logo-avatar">
-                <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&auto=format&fit=crop" alt="Avatar" />
+                <img :src="activeMetadata.author_avatar" alt="Channel Owner" />
               </div>
               <div class="channel-text-details">
-                <h3>Starbucks Global Academy</h3>
-                <p class="video-description-paragraph">{{ activeVideo.description }}</p>
+                <h3>{{ activeMetadata.author_name }}</h3>
+                <p class="video-description-paragraph">{{ activeMetadata.description }}</p>
               </div>
             </div>
           </div>
 
           <div class="recommendations-carousel-section">
             <div class="carousel-header-row">
-              <h3>Autoplay next</h3>
+              <h3>Playlist Collection</h3>
               <div class="autoplay-toggle-wrapper">
+                <span>Autoplay</span>
                 <label class="switch-toggle-widget">
-                  <input type="checkbox" v-model="isAutoplayEnabled" />
+                  <input type="checkbox" v-model="autoplayEnabled" />
                   <span class="slider-round-track"></span>
                 </label>
               </div>
@@ -128,14 +56,20 @@
 
             <div class="thumbnails-horizontal-track">
               <div 
-                v-for="(video, index) in videoPlaylist" 
+                v-for="(video, index) in processedPlaylist" 
                 :key="video.id"
                 class="thumbnail-card-item"
-                @click="switchActiveVideo(index)"
+                :class="{ 'active-track-playing': index === currentIndex }"
+                @click="loadVideoByIndex(index)"
               >
                 <div class="card-image-box">
-                  <img :src="video.thumbnailUrl" :alt="video.title" />
+                  <img :src="video.thumbnail_url" :alt="video.title" />
+                  <div class="thumbnail-play-overlay">
+                    <span>▶</span>
+                  </div>
                 </div>
+                <h4 class="thumbnail-card-title">{{ video.title }}</h4>
+                <span class="thumbnail-card-meta">{{ video.author_name }}</span>
               </div>
             </div>
           </div>
@@ -143,7 +77,30 @@
 
         <aside class="sidebar-right-panel">
           <div class="sidebar-sticky-card">
-            <span class="comment-spec-placeholder">comment section</span>
+            <div class="comments-container-header">
+              <h3 class="comments-count-title">Comments ({{ activeComments.length }})</h3>
+            </div>
+            <div class="comments-scroller-view">
+              <div v-for="(comment, idx) in activeComments" :key="idx" class="comment-item-row">
+                <div class="comment-avatar-circle">
+                  <img :src="comment.userAvatar" alt="User Profile" />
+                </div>
+                <div class="comment-content-block">
+                  <h4>{{ comment.username }}</h4>
+                  <p>{{ comment.text }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="comment-input-bar-wrapper">
+              <input 
+                type="text" 
+                placeholder="Join the discussion..." 
+                v-model="newCommentText"
+                @keyup.enter="postComment"
+                class="comment-input-field" 
+              />
+              <button class="deck-btn-send" @click="postComment"><i class="fa-regular fa-paper-plane"></i></button>
+            </div>
           </div>
         </aside>
 
@@ -153,39 +110,161 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useRoute, useRouter } from '#app'
 
-const { 
-  mainVideoElement, 
-  isAutoplayEnabled,
-  isCurrentlyPlaying,
-  trackTimelinePercent,
-  formattedTimeDisplay,
-  currentVolume,
-  isMuted,
-  videoPlaylist, 
-  activeVideo, 
-  switchActiveVideo, 
-  handleVideoEnded,
-  togglePlaybackState,
-  updateTrackTimeline,
-  scrubToTimelineFrame,
-  toggleFullscreenView,
-  adjustPlayerVolume,
-  toggleMuteState,
-  togglePopOutWindow
-} = useVideoPlayer()
+const route = useRoute()
+const router = useRouter()
 
-const isSettingsMenuOpen = ref(false)
-const selectedQuality = ref('Auto')
+const videoIds = [76979871, 818471133, 347119414, 524340546, 224392349, 192318923]
+const currentIndex = ref(0)
+const autoplayEnabled = ref(true)
+const newCommentText = ref('')
+const processedPlaylist = ref([])
 
-function changeVideoQuality(quality) {
-  selectedQuality.value = quality
-  isSettingsMenuOpen.value = false
-  alert(`Quality successfully changed to: ${quality}`)
+const localDiscussionsRepository = ref({
+  76979871: [
+    { username: 'Banco E-AMAZÔNIA', userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format', text: 'Stunning cinematography tracks! The festival showcase layout looks crisp.' },
+    { username: 'alzareef company', userAvatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=80&auto=format', text: 'Incredible frame metrics.' }
+  ],
+  818471131: [
+    { username: 'Design Lead Core', userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format', text: 'The motion graphics design system transitions are outstanding!' }
+  ],
+  347119414: [
+    { username: 'Cinema Pro Guild', userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format', text: 'This workshop breakdown covers everything required for modern production lighting setups.' }
+  ]
+})
+
+const activeMetadata = computed(() => {
+  const apiData = processedPlaylist.value[currentIndex.value]
+  
+  if (apiData) {
+    return {
+      title: apiData.title,
+      author_name: apiData.author_name,
+      author_avatar: apiData.author_portrait || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop',
+      description: apiData.description || 'No description provided for this video.'
+    }
+  }
+  
+  return {
+    title: 'Loading video details...',
+    author_name: 'Vimeo Network Team',
+    author_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop',
+    description: 'Resolving stream context from server...'
+  }
+})
+
+const upNextTitle = computed(() => {
+  if (!autoplayEnabled.value) return 'Autoplay is turned off'
+  if (processedPlaylist.value.length === 0) return 'Loading compilation metadata...'
+  
+  const nextIndex = (currentIndex.value + 1) % videoIds.length
+  return processedPlaylist.value[nextIndex]?.title || 'Loading next track...'
+})
+
+const activeComments = computed(() => {
+  const currentId = videoIds[currentIndex.value]
+  return localDiscussionsRepository.value[currentId] || [
+    { username: 'Vimeo Viewer', userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format', text: 'Amazing implementation of this video component stream!' }
+  ]
+})
+
+async function fetchLiveVimeoMetadata(id) {
+  try {
+    const rawTargetUrl = `https://vimeo.com/api/v2/video/${id}.json`
+    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(rawTargetUrl)}`
+    
+    const response = await fetch(proxiedUrl)
+    const data = await response.json()
+    const payload = data[0]
+    
+    let descriptiveText = payload.description || 'Official media asset node.'
+    if (descriptiveText.includes('<br')) {
+      descriptiveText = descriptiveText.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '')
+    }
+
+    return {
+      id: id,
+      title: payload.title || 'Vimeo Production Node',
+      author_name: payload.user_name || 'Vimeo Creator',
+      thumbnail_url: payload.thumbnail_large || 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400',
+      description: descriptiveText,
+      author_portrait: payload.user_portrait_large || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format'
+    }
+  } catch (error) {
+    return {
+      id: id,
+      title: `Vimeo Broadcast Reel - System Node ${id}`,
+      author_name: 'Production Collective',
+      thumbnail_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400',
+      description: 'Official production content stream managed dynamically via integrated Vimeo metadata APIs.',
+      author_portrait: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format'
+    }
+  }
 }
+
+function syncRouteState() {
+  const queryId = Number(route.query.id)
+  if (queryId && videoIds.includes(queryId)) {
+    currentIndex.value = videoIds.indexOf(queryId)
+  } else {
+    currentIndex.value = 0
+  }
+}
+
+function loadVideoByIndex(index) {
+  currentIndex.value = index
+  router.push({ query: { id: videoIds[index] } })
+}
+
+function nextVideo() {
+  const index = (currentIndex.value + 1) % videoIds.length
+  loadVideoByIndex(index)
+}
+
+function previousVideo() {
+  const index = (currentIndex.value - 1 + videoIds.length) % videoIds.length
+  loadVideoByIndex(index)
+}
+
+function postComment() {
+  if (!newCommentText.value.trim()) return
+  const currentId = videoIds[currentIndex.value]
+  if (!localDiscussionsRepository.value[currentId]) {
+    localDiscussionsRepository.value[currentId] = []
+  }
+  localDiscussionsRepository.value[currentId].push({
+    username: 'Verified User',
+    userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format',
+    text: newCommentText.value.trim()
+  })
+  newCommentText.value = ''
+}
+
+function handleKeyboardNavigation(e) {
+  if (e.key === 'ArrowRight') nextVideo()
+  if (e.key === 'ArrowLeft') previousVideo()
+}
+
+onMounted(async () => {
+  syncRouteState()
+  
+  const aggregationCollector = []
+  for (const id of videoIds) {
+    const videoMetadata = await fetchLiveVimeoMetadata(id)
+    aggregationCollector.push(videoMetadata)
+  }
+  processedPlaylist.value = aggregationCollector
+
+  window.addEventListener('keydown', handleKeyboardNavigation)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeyboardNavigation)
+})
 </script>
 
-<style scoped>
+<style>
 @import '~/assets/css/video-player.css';
 </style>
