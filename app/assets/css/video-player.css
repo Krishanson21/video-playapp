@@ -1,5 +1,5 @@
 :root {
-    --poc-bg: #0b48ff;
+    --poc-bg: #ffffff;
     --poc-accent: #000000;
     --poc-card: #ffffff;
     --poc-muted: #6b7280;
@@ -7,14 +7,13 @@
 }
 
 html, body, .video-poc-container {
-    background-color: #fdfeff ;
+    background-color: var(--poc-bg);
 }
-
 .video-meta-card, 
 .recommendations-carousel-section, 
 .sidebar-sticky-card {
     background-color: #ffffff;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #ffffff;
 }
 
 html,
@@ -143,8 +142,7 @@ body {
     transform: translateX(-50%);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     pointer-events: none;
-    
-    opacity: 0; /* Hidden initially */
+    opacity: 0;
     transition: opacity 0.15s ease, top 0.15s ease;
 }
 
@@ -160,17 +158,16 @@ body {
 
 .timeline-scrubber-wrapper:hover .floating-timestamp-pill {
     opacity: 1;
-    top: -30px;
+    top: -30px; 
 }
 
-   /* lower row container */
-
+/* Lower section */
 .player-main-center-wrapper {
     width: 100%;
     margin-top: 24px;
     padding: 20px;
     box-sizing: border-box;
-    background-color: #f4f7fa;
+    background-color: #f8f6f6;
 }
 
 .poc-layout-grid {
@@ -195,7 +192,7 @@ body {
     min-width: 0;
 }
 
-/* volume slider */
+/* volume contol */
 .vertical-hover-container {
     position: relative;
     display: flex;
@@ -252,7 +249,7 @@ body {
     background: #ffffff;
 }
 
-/* resumetoggle */
+/* resume toggle */
 .video-click-overlay {
     position: absolute;
     inset: 0;
@@ -290,8 +287,7 @@ body {
 .video-meta-card,
 .recommendations-carousel-section,
 .sidebar-sticky-card {
-    background-color: var(--poc-card);
-    /* White containers */
+    background-color: #ffffff;
     border-radius: 8px;
     padding: 24px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -483,7 +479,8 @@ input:checked+.slider-round-track:before {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-/* qualitybox */
+
+/* setting button */
 .settings-menu-container {
     position: relative;
     display: inline-block;
